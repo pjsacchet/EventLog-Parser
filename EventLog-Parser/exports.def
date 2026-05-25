@@ -1,0 +1,6 @@
+LIBRARY EventLog-Parser
+
+EXPORTS
+	CreateTraceSession	@1
+	DeleteTraceSession	@2
+	ListTraceSessions	@3
