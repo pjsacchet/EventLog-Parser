@@ -6,6 +6,8 @@ EventLog-Parser/.vs
 *.opendb
 *.iobj
 *.ipbd
+*.idb
+*.pdb
 *.suo
 *.tlog
 *.ilk
@@ -13,3 +15,7 @@ EventLog-Parser/.vs
 *.vcxproj.filters
 *.vcxproj.user
 *.exp
+*.obj
+*.vcxproj
+*.recipe
+*.log
