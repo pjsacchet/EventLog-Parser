@@ -1,0 +1,13 @@
+# Visual Studio files I don't think we need
+*.db-shm
+*.db-wal
+*.opendb
+*.iobj
+*.ipbd
+*.suo
+*.tlog
+*.ilk
+*.psch
+*.vcxproj.filters
+*.vcxproj.user
+*.exp
