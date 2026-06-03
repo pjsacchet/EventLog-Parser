@@ -12,10 +12,8 @@ EventLog-Parser/.vs
 *.tlog
 *.ilk
 *.psch
-*.vcxproj.filters
 *.vcxproj.user
 *.exp
 *.obj
-*.vcxproj
 *.recipe
 *.log
