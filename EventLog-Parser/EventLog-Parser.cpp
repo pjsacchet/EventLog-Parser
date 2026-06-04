@@ -57,7 +57,8 @@ VOID WINAPI EventCallback(EVENT_RECORD* event)
 }
 
 // User will call into ordinal 1 to create a new trace session 
-BOOL CreateTraceSession(HWND hwnd, HINSTANCE hinst, LPWSTR cmdLine, int cmdShow)
+	// Used for direct interaction via rundll32
+BOOL CreateTraceSessionCmd(HWND hwnd, HINSTANCE hinst, LPWSTR cmdLine, int cmdShow)
 {
 	INT32 numArgs = 0;
 	INT64 logfilenamelen = 0, loggernamelen = 0;
@@ -163,6 +164,13 @@ BOOL CreateTraceSession(HWND hwnd, HINSTANCE hinst, LPWSTR cmdLine, int cmdShow)
 
 
 	return TRUE;
+}
+
+// Used for calls from our python usermode code 
+BOOL CreateTraceSessionPy(WCHAR* sessionName, WCHAR* providerGuid)
+{
+
+
 }
 
 // User will call into ordinal 2 to stop an active trace session

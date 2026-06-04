@@ -8,14 +8,14 @@ Most anti-virus software products heavily employ ETW to identify malicious softw
 ## Setup & Execution
 I've included the .sln file for those who may wish to build on their own machines (I am using Visual Studio 2022 currently). I've also included the built binary found under ...\EventLog-Parser\EventLog-Parser\x64\Debug\EventLog-Parser.dll
 
-To run, the user can specify one of three exports this DLL offers and run it via rundll32 EventLog-Parser.dll,<ordinal number> [args...]:
+To run, the user can specify one of three exports this DLL offers and run it via rundll32 EventLog-Parser.dll,<ordinal number> [args...]. For best experience, it is recommended the user run this tool with Administrator privileges, in addition to DbgView to view all printed output to console:
 
 ### Create a trace session (ordinal #1)
-   `> rundll32 EventTrace-Parser.dll,#1 <session name> <GUID for provider>`
+   `> rundll32 EventLog-Parser.dll,#1 <session name> <GUID for provider>`
 ### Stop a trace session (ordinal #2)
-   `> rundll32 EventTrace-Parser.dll,#2 <session name>`
+   `> rundll32 EventLog-Parser.dll,#2 <session name>`
 ### List all active trace sessions (ordinal #3)
-   `> rundll32 EventTrace-Parser.dll,#3`
+   `> rundll32 EventLog-Parser.dll,#3`
 
 ## Useful commands
 In order to help troubleshoot and explore, the user may make use fo the following commands to help aid their understanding and troubleshoot via built-in Windows utilities:
@@ -31,8 +31,10 @@ In order to help troubleshoot and explore, the user may make use fo the followin
 
 ## Useful tools
 Recommended tools for troubleshooting:
-- DbgView (https://learn.microsoft.com/en-us/sysinternals/downloads/debugview) - all output from tool is printed to debug
-- ProcessHacker (https://github.com/PKRoma/ProcessHacker) - easy tool to identify loaded DLLs in case a trace session goes rogue...
+- DbgView (https://learn.microsoft.com/en-us/sysinternals/downloads/debugview)
+  - *All output from tool is printed to debug*
+- ProcessHacker (https://github.com/PKRoma/ProcessHacker)
+  - Easy tool to identify loaded DLLs in case a trace session goes rogue...
 
 ## Helpful ETW Providers
 If you are stuck trying to choose from all the different providers available on Windows to listen to, here are a few specific ones for blue-teamers:
