@@ -30,14 +30,19 @@ def handleNewTraceSession(trace_name : str, provider_guid:str) -> bool:
     # Grab a pointer to our exported function and define our primitive args
     CreateTraceSession = dll_path.CreateTraceSession
     CreateTraceSession.argtypes = [ctypes.c_wchar_p, ctypes.c_wchar_p]
+    CreateTraceSession.restype = [ctypes.c_bool]
 
-    print(f"Trace name is {trace_name} provider name is {provider_guid}")
+    print(f"Attempting to create trace seesion with name {trace_name} ane provider {provider_guid}")
 
+    result = CreateTraceSession(trace_name, provider_guid)
+    if (not result):
+        print("Failed CreateTraceSession!")
+        return False
+    else:
+        print("Successfully created trace session")
+        return True
 
-
-
-    return True
-
+# Functino call for stopping/deleting existing trace sessions; will call into our DLL with provided args
 def handleStopTraceSession():
 
     return

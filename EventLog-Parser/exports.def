@@ -1,6 +1,10 @@
 LIBRARY EventLog-Parser
 
 EXPORTS
-	CreateTraceSession	@1
-	DeleteTraceSession	@2
-	ListTraceSessions	@3
+	CreateTraceSessionCmd	@1
+	DeleteTraceSessionCmd	@2
+	ListTraceSessionsCmd	@3
+
+	CreateTraceSessionPy	@4
+	DeleteTraceSessionPy	@5
+	ListTraceSessionsPy		@6

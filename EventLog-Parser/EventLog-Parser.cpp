@@ -80,7 +80,7 @@ BOOL CreateTraceSessionCmd(HWND hwnd, HINSTANCE hinst, LPWSTR cmdLine, int cmdSh
 		// What provider GUID does the user want to provide us events with
 		if (CLSIDFromString(args[3], &providerGUID) != ERROR_SUCCESS)
 		{
-			err = L"EventLog-Parser::CreateTraceSession - ERROR; Failed CLSIDFromString error ";
+			err = L"EventLog-Parser::CreateTraceSessionCmd - ERROR; Failed CLSIDFromString error ";
 			err += std::to_wstring(GetLastError());
 			OutputDebugStringW(err.c_str());
 			err.clear();
@@ -92,11 +92,11 @@ BOOL CreateTraceSessionCmd(HWND hwnd, HINSTANCE hinst, LPWSTR cmdLine, int cmdSh
 
 	else
 	{
-		OutputDebugStringW(L"EventLog-Parser::CreateTraceSession - ERROR; Incorrect number of args passed!\n");
+		OutputDebugStringW(L"EventLog-Parser::CreateTraceSessionCmd - ERROR; Incorrect number of args passed!\n");
 
 		if (!PrintHelpCreateTraceSession())
 		{
-			OutputDebugStringW(L"EventLog-Parser::CreateTraceSession - ERROR; Failed PrintHelpCreateTraceSession!\n");
+			OutputDebugStringW(L"EventLog-Parser::CreateTraceSessionCmd - ERROR; Failed PrintHelpCreateTraceSession!\n");
 		}
 
 		return FALSE;
@@ -113,14 +113,14 @@ BOOL CreateTraceSessionCmd(HWND hwnd, HINSTANCE hinst, LPWSTR cmdLine, int cmdSh
 	// Start our session
 	if (StartTraceW(&hTrace, sessionName.c_str(), &data.props) != ERROR_SUCCESS)
 	{
-		err = L"EventLog-Parser::CreateTraceSession - ERROR; Failed StartTraceW error ";
+		err = L"EventLog-Parser::CreateTraceSessionCmd - ERROR; Failed StartTraceW error ";
 		err += std::to_wstring(GetLastError());
 		OutputDebugStringW(err.c_str());
 		err.clear();
 		return FALSE;
 	}
 
-	info = L"EventLog-Parser::CreateTraceSession - INFO; Trace session started: ";
+	info = L"EventLog-Parser::CreateTraceSessionCmd - INFO; Trace session started: ";
 	info += sessionName.c_str();
 	OutputDebugStringW(info.c_str());
 	info.clear();
@@ -128,7 +128,7 @@ BOOL CreateTraceSessionCmd(HWND hwnd, HINSTANCE hinst, LPWSTR cmdLine, int cmdSh
 	// Next add our provider so we actually collect stuff 
 	if (EnableTraceEx2(hTrace, &providerGUID, EVENT_CONTROL_CODE_ENABLE_PROVIDER, TRACE_LEVEL_VERBOSE, 0, 0, 0, NULL) != ERROR_SUCCESS)
 	{
-		err = L"EventLog-Parser::CreateTraceSession - ERROR; Failed EnableTraceEx2 error ";
+		err = L"EventLog-Parser::CreateTraceSessionCmd - ERROR; Failed EnableTraceEx2 error ";
 		err += std::to_wstring(GetLastError());
 		OutputDebugStringW(err.c_str());
 		err.clear();
@@ -143,19 +143,19 @@ BOOL CreateTraceSessionCmd(HWND hwnd, HINSTANCE hinst, LPWSTR cmdLine, int cmdSh
 	hParse = OpenTrace(&etl);
 	if (hParse == INVALID_PROCESSTRACE_HANDLE)
 	{
-		err = L"EventLog-Parser::CreateTraceSession - ERROR; Failed OpenTrace error ";
+		err = L"EventLog-Parser::CreateTraceSessionCmd - ERROR; Failed OpenTrace error ";
 		err += std::to_wstring(GetLastError());
 		OutputDebugStringW(err.c_str());
 		err.clear();
 		return FALSE;
 	}
 
-	OutputDebugStringW(L"EventLog-Parser::CreateTraceSession - INFO; Starting event processing...\n");
+	OutputDebugStringW(L"EventLog-Parser::CreateTraceSessionCmd - INFO; Starting event processing...\n");
 
 	// Start processing events
 	if (ProcessTrace(&hParse, 1, NULL, NULL) != ERROR_SUCCESS)
 	{
-		err = L"EventLog-Parser::CreateTraceSession - ERROR; Failed ProcessTrace error ";
+		err = L"EventLog-Parser::CreateTraceSessionCmd - ERROR; Failed ProcessTrace error ";
 		err += std::to_wstring(GetLastError());
 		OutputDebugStringW(err.c_str());
 		err.clear();
@@ -167,14 +167,91 @@ BOOL CreateTraceSessionCmd(HWND hwnd, HINSTANCE hinst, LPWSTR cmdLine, int cmdSh
 }
 
 // Used for calls from our python usermode code 
-BOOL CreateTraceSessionPy(WCHAR* sessionName, WCHAR* providerGuid)
+	// Only need the desired session name and provider GUID for our session thats being created
+BOOL CreateTraceSessionPy(__in WCHAR* sessionName, __in WCHAR* providerGuid)
 {
+	INT64 logfilenamelen = 0, loggernamelen = 0;
+	EventTraceProps data = { 0 };
+	TRACEHANDLE hTrace = { 0 }, hParse = { 0 };
+	GUID providerGUID = { 0 };
+	EVENT_TRACE_LOGFILE etl = { 0 };
+	std::wstring err, info;
 
+	// TODO: make a easily callable print function that takes a number of varied args and a string 
+	info = L"EventLog-Parser::CreateTraceSessionPy - INFO; User passed args for session name/provider GUID";
+	info += sessionName;
+	info += providerGuid;
+	OutputDebugStringW(info.c_str());
+	info.clear();
+
+	// Now with that configure our trace session - these are what is required at minimum for a trace session
+	data.props.Wnode.BufferSize = sizeof(data); // number of bytes for the event tracing session properties (plus session name string and log file name)
+	data.props.Wnode.Guid = GUID_NULL; // allow ETW to generate a unique GUID for us to use
+	data.props.Wnode.ClientContext = 1; // query performance counter (high resolution time stamp)
+	data.props.Wnode.Flags = WNODE_FLAG_TRACED_GUID; // must contain this
+
+	data.props.LogFileMode = EVENT_TRACE_REAL_TIME_MODE; // don't write output to file
+
+	// Start our session
+	if (StartTraceW(&hTrace, sessionName, &data.props) != ERROR_SUCCESS)
+	{
+		err = L"EventLog-Parser::CreateTraceSessionPy - ERROR; Failed StartTraceW error ";
+		err += std::to_wstring(GetLastError());
+		OutputDebugStringW(err.c_str());
+		err.clear();
+		return FALSE;
+	}
+
+	info = L"EventLog-Parser::CreateTraceSessionPy - INFO; Trace session started: ";
+	info += sessionName; // TODO: can I do this 
+	OutputDebugStringW(info.c_str());
+	info.clear();
+
+	// Next add our provider so we actually collect stuff 
+	if (EnableTraceEx2(hTrace, &providerGUID, EVENT_CONTROL_CODE_ENABLE_PROVIDER, TRACE_LEVEL_VERBOSE, 0, 0, 0, NULL) != ERROR_SUCCESS)
+	{
+		err = L"EventLog-Parser::CreateTraceSessionPY - ERROR; Failed EnableTraceEx2 error ";
+		err += std::to_wstring(GetLastError());
+		OutputDebugStringW(err.c_str());
+		err.clear();
+		return FALSE;
+	}
+
+	// Create a consumer so we comsume stuff
+	etl.LoggerName = sessionName;
+	etl.ProcessTraceMode = PROCESS_TRACE_MODE_REAL_TIME | PROCESS_TRACE_MODE_EVENT_RECORD;
+	etl.EventRecordCallback = EventCallback;
+
+	hParse = OpenTrace(&etl);
+	if (hParse == INVALID_PROCESSTRACE_HANDLE)
+	{
+		err = L"EventLog-Parser::CreateTraceSessionPy - ERROR; Failed OpenTrace error ";
+		err += std::to_wstring(GetLastError());
+		OutputDebugStringW(err.c_str());
+		err.clear();
+		return FALSE;
+	}
+
+	OutputDebugStringW(L"EventLog-Parser::CreateTraceSessionPy - INFO; Starting event processing...\n");
+
+	// Start processing events
+	if (ProcessTrace(&hParse, 1, NULL, NULL) != ERROR_SUCCESS)
+	{
+		err = L"EventLog-Parser::CreateTraceSessionPy - ERROR; Failed ProcessTrace error ";
+		err += std::to_wstring(GetLastError());
+		OutputDebugStringW(err.c_str());
+		err.clear();
+		return FALSE;
+	}
+
+
+	return TRUE;
 
 }
 
 // User will call into ordinal 2 to stop an active trace session
-BOOL DeleteTraceSession(HWND hwnd, HINSTANCE hinst, LPWSTR cmdLine, int cmdShow)
+	// Used for direct interaction via rundll32
+BOOL DeleteTraceSessionCmd(HWND hwnd, HINSTANCE hinst, LPWSTR cmdLine, int cmdShow)
 {
 	INT32 numArgs = 0;
 	std::wstring sessionName, info, err;
@@ -193,11 +270,11 @@ BOOL DeleteTraceSession(HWND hwnd, HINSTANCE hinst, LPWSTR cmdLine, int cmdShow)
 
 	else
 	{
-		OutputDebugStringW(L"EventLog-Parser::DeleteTraceSession - ERROR; Incorrect number of args passed!\n");
+		OutputDebugStringW(L"EventLog-Parser::DeleteTraceSessionCmd - ERROR; Incorrect number of args passed!\n");
 
 		if (!PrintHelpDeleteTraceSession())
 		{
-			OutputDebugStringW(L"EventLog-Parser::DeleteTraceSession - ERROR; Failed PrintHelpCreateTraceSession!\n");
+			OutputDebugStringW(L"EventLog-Parser::DeleteTraceSessionCmd - ERROR; Failed PrintHelpCreateTraceSession!\n");
 		}
 
 		return FALSE;
@@ -209,20 +286,30 @@ BOOL DeleteTraceSession(HWND hwnd, HINSTANCE hinst, LPWSTR cmdLine, int cmdShow)
 	
 	if (ControlTraceW(NULL, sessionName.c_str(), &data.props, EVENT_TRACE_CONTROL_STOP) != ERROR_SUCCESS)
 	{
-		err = L"EventLog-Parser::DeleteTraceSession - ERROR; Failed ControlTraceW error ";
+		err = L"EventLog-Parser::DeleteTraceSessionCmd - ERROR; Failed ControlTraceW error ";
 		err += std::to_wstring(GetLastError());
 		OutputDebugStringW(err.c_str());
 		err.clear();
 		return FALSE;
 	}
 
-	OutputDebugStringW(L"EventLog-Parser::DeleteTraceSession - INFO; Successfully closed trace session\n");
+	OutputDebugStringW(L"EventLog-Parser::DeleteTraceSessionCmd - INFO; Successfully closed trace session\n");
+
+	return TRUE;
+}
+
+// Used for calls from our python usermode code 
+	// Only need the session name we want to delete
+BOOL DeleteTraceSessionPy(__in WCHAR* sessionName)
+{
+
 
 	return TRUE;
 }
 
 // User will call into ordinal 3 to list all active trace sessions
-BOOL ListTraceSessions(HWND hwnd, HINSTANCE hinst, LPWSTR cmdLine, int cmdShow)
+	// Used for direct interaction via rundll32
+BOOL ListTraceSessionsCmd(HWND hwnd, HINSTANCE hinst, LPWSTR cmdLine, int cmdShow)
 {
 	DWORD status;
 	std::wstring err, info;
@@ -249,7 +336,7 @@ BOOL ListTraceSessions(HWND hwnd, HINSTANCE hinst, LPWSTR cmdLine, int cmdShow)
 
 	if (status != ERROR_SUCCESS)
 	{
-		err = L"EventLog-Parser::ListTraceSessions - ERROR; Failed QueryAllTracesW error ";
+		err = L"EventLog-Parser::ListTraceSessionsCmd - ERROR; Failed QueryAllTracesW error ";
 		err += std::to_wstring(GetLastError());
 		OutputDebugStringW(err.c_str());
 		err.clear();
@@ -271,6 +358,15 @@ BOOL ListTraceSessions(HWND hwnd, HINSTANCE hinst, LPWSTR cmdLine, int cmdShow)
 			info.clear();
 		}
 	}
+
+	return TRUE;
+}
+
+// Used for calls from our python usermode code 
+	// Allocate and format the output session string of all trace sessions on this machine 
+BOOL ListTraceSessionsPy(__inout WCHAR* sessionString)
+{
+
 
 	return TRUE;
 }
