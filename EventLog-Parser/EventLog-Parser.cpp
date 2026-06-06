@@ -246,7 +246,6 @@ BOOL CreateTraceSessionPy(__in WCHAR* sessionName, __in WCHAR* providerGuid)
 
 
 	return TRUE;
-
 }
 
 // User will call into ordinal 2 to stop an active trace session
@@ -302,7 +301,23 @@ BOOL DeleteTraceSessionCmd(HWND hwnd, HINSTANCE hinst, LPWSTR cmdLine, int cmdSh
 	// Only need the session name we want to delete
 BOOL DeleteTraceSessionPy(__in WCHAR* sessionName)
 {
+	std::wstring info, err;
+	EventTraceProps data = { 0 };
 
+	data.props.Wnode.BufferSize = sizeof(data);
+	data.props.Wnode.Flags = WNODE_FLAG_TRACED_GUID;
+	data.props.LoggerNameOffset = offsetof(EventTraceProps, loggerName);
+
+	if (ControlTraceW(NULL, sessionName, &data.props, EVENT_TRACE_CONTROL_STOP) != ERROR_SUCCESS)
+	{
+		err = L"EventLog-Parser::DeleteTraceSessionPy - ERROR; Failed ControlTraceW error ";
+		err += std::to_wstring(GetLastError());
+		OutputDebugStringW(err.c_str());
+		err.clear();
+		return FALSE;
+	}
+
+	OutputDebugStringW(L"EventLog-Parser::DeleteTraceSessionPy - INFO; Successfully closed trace session\n");
 
 	return TRUE;
 }

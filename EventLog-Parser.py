@@ -5,10 +5,12 @@
 
 import ctypes 
 import enum
+import sys 
+import os 
 
 # Path to our DLL
     # Assuming we're loading the x64 debug version, but could make that a selection at runtime 
-dll_path = ctypes.WinDLL('EventLog-Parser/x64/Debug/EventLog-Parser.dll')
+dll_path = None
 
 # Command values
 class values(enum.Enum):
@@ -28,7 +30,7 @@ def printHelp() -> str:
 # Function handler for creating new trace sessions; will call into our DLL with provided args
 def handleNewTraceSession(trace_name : str, provider_guid:str) -> bool:
     # Grab a pointer to our exported function and define our primitive args
-    CreateTraceSession = dll_path.CreateTraceSession
+    CreateTraceSession = dll_path.CreateTraceSessionPy
     CreateTraceSession.argtypes = [ctypes.c_wchar_p, ctypes.c_wchar_p]
     CreateTraceSession.restype = [ctypes.c_bool]
 
@@ -43,9 +45,21 @@ def handleNewTraceSession(trace_name : str, provider_guid:str) -> bool:
         return True
 
 # Functino call for stopping/deleting existing trace sessions; will call into our DLL with provided args
-def handleStopTraceSession():
+def handleStopTraceSession(trace_name : str) -> bool:
+    # Grab a pointer to our exported function and define our primitive args
+    DeleteTraceSession = dll_path.DeleteTraceSessionPy
+    DeleteTraceSession.argtypes = [ctypes.c_wchar_p, ctypes.c_wchar_p]
+    DeleteTraceSession.restype = [ctypes.c_bool]
 
-    return
+    print(f"Attempting to stop trace seesion with name {trace_name}")
+
+    result = DeleteTraceSession(trace_name)
+    if (not result):
+        print("Failed DeleteTraceSession!")
+        return False
+    else:
+        print("Successfully deleted trace session")
+        return True
 
 def handleListTraceSessions():
 
@@ -70,6 +84,13 @@ def main():
                     print("Failed creating new trace session")
                 else:
                     print(f"Created new trace session {trace_name} with provider GUID {provider_guid}")
+            case values.STOP_TRACE.value:
+                print("Please input session name: ")
+                trace_name = input("\t> ")
+                if (not handleStopTraceSession(trace_name)):
+                    print("Failed to stop trace session")
+                else:
+                    print(f"Stopped trace session {trace_name}")
 
                 
 
@@ -78,4 +99,12 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    if (len(sys.argv) != 2):
+        print("ERROR; Need to provide path to DLL upon execution")
+        exit()
+    else:
+        if (os.path.exists(sys.argv[1])):
+            print(os.getcwd())
+            os.add_dll_directory(os.getcwd())
+            dll_path = ctypes.WinDLL(sys.argv[1])
+            main()
