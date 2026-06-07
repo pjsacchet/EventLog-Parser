@@ -33,10 +33,12 @@ def handleNewTraceSession(trace_name : str, provider_guid:str) -> bool:
     CreateTraceSession = dll_path.CreateTraceSessionPy
     CreateTraceSession.argtypes = [ctypes.c_wchar_p, ctypes.c_wchar_p]
     CreateTraceSession.restype = [ctypes.c_bool]
+    trace_name_c = ctypes.c_wchar_p(trace_name)
+    provider_guid_c = ctypes.c_wchar_p(provider_guid)
 
     print(f"Attempting to create trace seesion with name {trace_name} ane provider {provider_guid}")
 
-    result = CreateTraceSession(trace_name, provider_guid)
+    result = CreateTraceSession(trace_name_c, provider_guid_c)
     if (not result):
         print("Failed CreateTraceSession!")
         return False
@@ -50,10 +52,11 @@ def handleStopTraceSession(trace_name : str) -> bool:
     DeleteTraceSession = dll_path.DeleteTraceSessionPy
     DeleteTraceSession.argtypes = [ctypes.c_wchar_p, ctypes.c_wchar_p]
     DeleteTraceSession.restype = [ctypes.c_bool]
+    trace_name_c = ctypes.c_wchar_p(trace_name)
 
     print(f"Attempting to stop trace seesion with name {trace_name}")
 
-    result = DeleteTraceSession(trace_name)
+    result = DeleteTraceSession(trace_name_c)
     if (not result):
         print("Failed DeleteTraceSession!")
         return False
@@ -61,10 +64,24 @@ def handleStopTraceSession(trace_name : str) -> bool:
         print("Successfully deleted trace session")
         return True
 
-def handleListTraceSessions():
+# Function call for listing all active trace sessions
+def handleListTraceSessions() -> bool:
+    # Grab a pointer to our exported function and define our primitive args
+    DeleteTraceSession = dll_path.ListTraceSessionsPy
+    DeleteTraceSession.argtypes = [ctypes.POINTER(ctypes.c_uint32), ctypes.POINTER(ctypes.POINTER(ctypes.c_wchar_p))]
+    DeleteTraceSession.restype = [ctypes.c_bool]
+    num_traces = ctypes.c_uint32
+    trace_names = ctypes.POINTER(ctypes.POINTER(ctypes.c_wchar))
 
+    print(f"Attempting to list all active trace sessions")
 
-    return
+    result = DeleteTraceSession(ctypes.byref(num_traces), ctypes.byref(trace_names))
+    if (not result):
+        print("Failed ListTraceSessions!")
+        return False
+    else:
+        print("Successfully listed trace sessions")
+        return True
 
 def main():
     choice = -1
@@ -91,9 +108,11 @@ def main():
                     print("Failed to stop trace session")
                 else:
                     print(f"Stopped trace session {trace_name}")
-
-                
-
+            case values.LIST_TRACES.value:
+                if (not handleListTraceSessions()):
+                    print("Failed to list trace sessions")
+                else:
+                    print("Successfully listed trace sessions")
             case _:
                 print("ERROR; invalid selection; try again")
 

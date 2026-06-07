@@ -379,9 +379,78 @@ BOOL ListTraceSessionsCmd(HWND hwnd, HINSTANCE hinst, LPWSTR cmdLine, int cmdSho
 
 // Used for calls from our python usermode code 
 	// Allocate and format the output session string of all trace sessions on this machine 
-BOOL ListTraceSessionsPy(__inout WCHAR* sessionString)
+BOOL ListTraceSessionsPy(__inout UINT32* sessionCount, WCHAR*** sessionNames)
 {
+	DWORD status;
+	std::wstring err, info;
+	ULONG count = 64; // max of 64 sessions
+	INT64 propSize = sizeof(EVENT_TRACE_PROPERTIES) + (1024 * sizeof(WCHAR) + (1024 * sizeof(WCHAR))); // session name and log path lengths are both max 1024 bytes
+	std::vector<BYTE>buffer;
+	std::vector<EVENT_TRACE_PROPERTIES*> sessions;
 
+	do
+	{
+		sessions.resize(count);
+		buffer.resize(propSize * count);
+
+		for (UINT64 i = 0; i < count; i++)
+		{
+			sessions[i] = (EVENT_TRACE_PROPERTIES*)&buffer[i * propSize];
+			sessions[i]->Wnode.BufferSize = propSize;
+			sessions[i]->LoggerNameOffset = sizeof(EVENT_TRACE_PROPERTIES);
+			sessions[i]->LogFileNameOffset = sizeof(EVENT_TRACE_PROPERTIES) + (1024 * sizeof(CHAR));
+		}
+
+		status = QueryAllTracesW(&sessions[0], count, &count);
+	} while (status == ERROR_MORE_DATA);
+
+	if (status != ERROR_SUCCESS)
+	{
+		err = L"EventLog-Parser::ListTraceSessionsPy - ERROR; Failed QueryAllTracesW error ";
+		err += std::to_wstring(GetLastError());
+		OutputDebugStringW(err.c_str());
+		err.clear();
+		return FALSE;
+	}
+
+	else
+	{
+		info = L"Session count: " + std::to_wstring(count);
+		OutputDebugStringW(info.c_str());
+		info.clear();
+
+		// Store for output, and allocate array accordingly 
+		*sessionCount = count;
+
+		*sessionNames = (WCHAR**)malloc(sizeof(WCHAR*) * count);
+		if (*sessionNames == NULL)
+		{
+			err = L"EventLog-Parser:: ListTraceSessionsPy - ERROR; OOM!\N";
+			OutputDebugStringW(err.c_str());
+			return FALSE;
+		}
+
+		for (UINT64 i = 0; i < count; i++)
+		{
+			auto name = (PCWSTR)((LPCBYTE)sessions[i] + sessions[i]->LoggerNameOffset);
+			info = L"Session name: " + std::wstring(name);
+
+			OutputDebugStringW(info.c_str());
+			info.clear();
+
+			(*sessionNames)[i] = (WCHAR*)malloc(sizeof(WCHAR) * std::wstring(name).length());
+			if ((*sessionNames)[i] == NULL)
+			{
+				err = L"EventLog-Parser:: ListTraceSessionsPy - ERROR; OOM!\N";
+				OutputDebugStringW(err.c_str());
+				return FALSE;
+			}
+
+			memcpy((*sessionNames)[i], std::wstring(name).c_str(), std::wstring(name).length());
+		}
+	}
+
+	// TODO: goto statement here to cleanup memory before we bail so we don't leak 
 
 	return TRUE;
 }

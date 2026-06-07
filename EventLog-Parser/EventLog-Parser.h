@@ -19,7 +19,7 @@ BOOL DeleteTraceSessionCmd(HWND hwnd, HINSTANCE hinst, LPWSTR cmdLine, int cmdSh
 BOOL DeleteTraceSessionPy(__in WCHAR* sessionName);
 
 BOOL ListTraceSessionsCmd(HWND hwnd, HINSTANCE hinst, LPWSTR cmdLine, int cmdShow);
-BOOL ListTraceSessionsPy(__inout WCHAR* sessionString);
+BOOL ListTraceSessionsPy(__inout UINT32* sessionCount, WCHAR*** sessionNames);
 
 // We need our logger name and log file name in memory following our EVENT_TRACE_PROPERTIES struct
 typedef struct _EventTraceProps
