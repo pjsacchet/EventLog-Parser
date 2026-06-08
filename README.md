@@ -6,6 +6,8 @@ ETW is a powerful kernel-level utility that offers increidbly granularity to lis
 Most anti-virus software products heavily employ ETW to identify malicious software and activity; understanding how one could utilize this at a programmatic level would give any blue-teamer a leg-up on the adversary. 
 
 ## Setup & Execution
+*Please note: user must be running with admin privs to use this tool*
+
 I've included the .sln file for those who may wish to build on their own machines (I am using Visual Studio 2022 currently). I've also included the built binary found under ...\EventLog-Parser\EventLog-Parser\x64\Debug\EventLog-Parser.dll
 
 To run, the user can specify one of three exports this DLL offers and run it via rundll32 EventLog-Parser.dll,<ordinal number> [args...]. For best experience, it is recommended the user run this tool with Administrator privileges, in addition to DbgView to view all printed output to console:
