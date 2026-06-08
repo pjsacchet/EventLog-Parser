@@ -7,9 +7,6 @@ import ctypes
 import enum
 import sys 
 import os 
-import threading
-
-threads = []
 
 # Path to our DLL
     # Assuming we're loading the x64 debug version, but could make that a selection at runtime 

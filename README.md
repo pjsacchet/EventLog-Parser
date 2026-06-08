@@ -34,7 +34,7 @@ In order to help troubleshoot and explore, the user may make use fo the followin
 ## Useful tools
 Recommended tools for troubleshooting:
 - DbgView (https://learn.microsoft.com/en-us/sysinternals/downloads/debugview)
-  - *All output from tool is printed to debug*
+  - *All output from tool is printed to debug so this tool is needed for troubleshooting!*
 - ProcessHacker (https://github.com/PKRoma/ProcessHacker)
   - Easy tool to identify loaded DLLs in case a trace session goes rogue...
 
