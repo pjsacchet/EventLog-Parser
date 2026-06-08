@@ -7,6 +7,9 @@ import ctypes
 import enum
 import sys 
 import os 
+import threading
+
+threads = []
 
 # Path to our DLL
     # Assuming we're loading the x64 debug version, but could make that a selection at runtime 
@@ -32,11 +35,11 @@ def handleNewTraceSession(trace_name : str, provider_guid:str) -> bool:
     # Grab a pointer to our exported function and define our primitive args
     CreateTraceSession = dll_path.CreateTraceSessionPy
     CreateTraceSession.argtypes = [ctypes.c_wchar_p, ctypes.c_wchar_p]
-    CreateTraceSession.restype = [ctypes.c_bool]
+    CreateTraceSession.restype = ctypes.c_bool
     trace_name_c = ctypes.c_wchar_p(trace_name)
     provider_guid_c = ctypes.c_wchar_p(provider_guid)
 
-    print(f"Attempting to create trace seesion with name {trace_name} ane provider {provider_guid}")
+    print(f"Attempting to create trace seesion with name {trace_name} and provider {provider_guid}")
 
     result = CreateTraceSession(trace_name_c, provider_guid_c)
     if (not result):
@@ -46,12 +49,12 @@ def handleNewTraceSession(trace_name : str, provider_guid:str) -> bool:
         print("Successfully created trace session")
         return True
 
-# Functino call for stopping/deleting existing trace sessions; will call into our DLL with provided args
+# Function call for stopping/deleting existing trace sessions; will call into our DLL with provided args
 def handleStopTraceSession(trace_name : str) -> bool:
     # Grab a pointer to our exported function and define our primitive args
     DeleteTraceSession = dll_path.DeleteTraceSessionPy
     DeleteTraceSession.argtypes = [ctypes.c_wchar_p, ctypes.c_wchar_p]
-    DeleteTraceSession.restype = [ctypes.c_bool]
+    DeleteTraceSession.restype = ctypes.c_bool
     trace_name_c = ctypes.c_wchar_p(trace_name)
 
     print(f"Attempting to stop trace seesion with name {trace_name}")
@@ -67,20 +70,33 @@ def handleStopTraceSession(trace_name : str) -> bool:
 # Function call for listing all active trace sessions
 def handleListTraceSessions() -> bool:
     # Grab a pointer to our exported function and define our primitive args
-    DeleteTraceSession = dll_path.ListTraceSessionsPy
-    DeleteTraceSession.argtypes = [ctypes.POINTER(ctypes.c_uint32), ctypes.POINTER(ctypes.POINTER(ctypes.c_wchar_p))]
-    DeleteTraceSession.restype = [ctypes.c_bool]
-    num_traces = ctypes.c_uint32
-    trace_names = ctypes.POINTER(ctypes.POINTER(ctypes.c_wchar))
+    ListTraceSessions = dll_path.ListTraceSessionsPy
+    ListTraceSessions.argtypes = [ctypes.POINTER(ctypes.c_uint32), ctypes.POINTER(ctypes.POINTER(ctypes.c_wchar_p))]
+    ListTraceSessions.restype = ctypes.c_bool
+    num_traces = ctypes.c_uint32(0)
+    trace_names = ctypes.POINTER(ctypes.c_wchar_p)()
 
     print(f"Attempting to list all active trace sessions")
 
-    result = DeleteTraceSession(ctypes.byref(num_traces), ctypes.byref(trace_names))
+    result = ListTraceSessions(ctypes.byref(num_traces), ctypes.byref(trace_names))
     if (not result):
         print("Failed ListTraceSessions!")
         return False
+    elif (num_traces.value == 0):
+        print("ERROR; supposedly found 0 traces!")
     else:
-        print("Successfully listed trace sessions")
+        print(f"Found {num_traces.value} traces")
+        count = 0
+        while (count <= num_traces.value):
+            #print(f"{trace_names[count]}")
+            try:
+                # Re-encode as UTF-16 allowing surrogates, then decode back to valid Unicode
+                fixed_string = trace_names[count].encode('utf-16', 'surrogatepass').decode('utf-16')
+                print(fixed_string)
+            except UnicodeEncodeError:
+                # If it fails, the data might be genuinely corrupted
+                print("Data contains invalid surrogate sequences.")
+            count += 1
         return True
 
 def main():
@@ -123,7 +139,6 @@ if __name__ == '__main__':
         exit()
     else:
         if (os.path.exists(sys.argv[1])):
-            print(os.getcwd())
             os.add_dll_directory(os.getcwd())
             dll_path = ctypes.WinDLL(sys.argv[1])
             main()

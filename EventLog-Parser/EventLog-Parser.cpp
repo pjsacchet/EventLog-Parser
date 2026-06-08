@@ -178,7 +178,7 @@ BOOL CreateTraceSessionPy(__in WCHAR* sessionName, __in WCHAR* providerGuid)
 	std::wstring err, info;
 
 	// TODO: make a easily callable print function that takes a number of varied args and a string 
-	info = L"EventLog-Parser::CreateTraceSessionPy - INFO; User passed args for session name/provider GUID";
+	info = L"EventLog-Parser::CreateTraceSessionPy - INFO; User passed args for session name/provider GUID ";
 	info += sessionName;
 	info += providerGuid;
 	OutputDebugStringW(info.c_str());
